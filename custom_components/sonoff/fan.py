@@ -58,7 +58,7 @@ class SonoffSimpleFan(EWeLinkToggle, FanEntity):
 
 class SonoffFanBase(EWeLinkEntity, FanEntity):
 #    _speed = None
-     _percentage = 0
+    _percentage = 0
 
     @property
     def supported_features(self):
@@ -115,13 +115,13 @@ class SonoffFan02(SonoffFanBase):
 
     async def async_set_percentage(self, percentage: int) -> None:
         if percentage == 0:
-          speed = "off"
+          speed = SPEED_OFF
         elif percentage <= 33:
-          speed = "low"
+          speed = SPEED_LOW
         elif percentage <= 67:
-          speed = "medium"
+          speed = SPEED_MEDIUM
         else:
-          speed = "high"
+          speed = SPEED_HIGH
         channels = IFAN02_STATES.get(speed)
         await self._turn_bulk(channels)
 		
@@ -129,8 +129,8 @@ class SonoffFan02(SonoffFanBase):
         channels = IFAN02_STATES.get(speed)
         await self._turn_bulk(channels)
 
-    async def async_turn_on(self, percentage: Optional[int] = 33, **kwargs):
-        if speed:
+    async def async_turn_on(self, percentage: Optional[int] = 0, **kwargs):
+        if percentage>0:
             await self.async_set_percentage(percentage)
         else:
             await self._turn_on()
@@ -154,9 +154,11 @@ class SonoffDiffuserFan(SonoffFanBase):
 
         if 'state' in state:
             if state['state'] == 1:
-                self._speed = SPEED_LOW
+#                self._speed = SPEED_LOW
+                self._percentage = 50
             elif state['state'] == 2:
-                self._speed = SPEED_HIGH
+#                self._speed = SPEED_HIGH
+                self._percentage = 100
 
         self.schedule_update_ha_state()
 
@@ -193,8 +195,8 @@ class SonoffDiffuserFan(SonoffFanBase):
 #        elif speed == SPEED_OFF:
 #            await self._turn_off()
 
-    async def async_turn_on(self, percentage: Optional[int] = 50, **kwargs):
-        if speed:
+    async def async_turn_on(self, percentage: Optional[int] = 0, **kwargs):
+        if percentage>0:
             await self.async_set_percentage(percentage)
         else:
             await self._turn_on()
