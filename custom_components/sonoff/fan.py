@@ -8,7 +8,7 @@ https://github.com/AlexxIT/SonoffLAN/issues/30
 """
 from typing import List
 
-from homeassistant.components.fan import FanEntity, SUPPORT_SET_SPEED
+from homeassistant.components.fan import FanEntity, SUPPORT_SET_SPEED, SUPPORT_PRESET_MODE
 
 # noinspection PyUnresolvedReferences
 from . import DOMAIN, SCAN_INTERVAL
@@ -19,6 +19,9 @@ SPEED_OFF = 0
 SPEED_LOW = 33
 SPEED_MEDIUM = 67
 SPEED_HIGH = 100
+
+PRESET_MODES_PERCENT = [SPEED_OFF, SPEED_LOW, SPEED_MEDIUM, SPEED_HIGH]
+PRESET_MODES_STRING = ["off", "low", "medium", "high"]
 
 IFAN02_CHANNELS = [2, 3, 4]
 IFAN02_STATES = {
@@ -81,6 +84,20 @@ class SonoffFanBase(EWeLinkEntity, FanEntity):
 
 
 class SonoffFan02(SonoffFanBase):
+    _preset_mode = PRESET_MODES_STRING[0]
+
+    @property
+    def supported_features(self):
+        return SUPPORT_SET_SPEED | SUPPORT_PRESET_MODE
+
+    @property
+    def preset_modes(self) -> list: 
+        return list(PRESET_MODES_STRING)
+
+    @property
+    def preset_mode(self) -> str:
+        return self._preset_mode
+        
     def _is_on_list(self, state: dict) -> List[bool]:
         # https://github.com/AlexxIT/SonoffLAN/issues/146
         switches = sorted(state['switches'], key=lambda i: i['outlet'])
@@ -105,7 +122,8 @@ class SonoffFan02(SonoffFanBase):
                     raise Exception("Wrong iFan02 state")
             else:
                 self._speed = SPEED_OFF
-
+            
+        self._preset_mode = PRESET_MODES_STRING[PRESET_MODES_PERCENT.index(self._speed)]
         self.schedule_update_ha_state()
 
     async def async_set_percentage(self, percentage: int):
@@ -114,7 +132,11 @@ class SonoffFan02(SonoffFanBase):
         ))
         channels = IFAN02_STATES.get(percentage)
         await self._turn_bulk(channels)
-
+        
+    async def async_set_preset_mode(self, preset_mode: str) -> None:
+        percentage = PRESET_MODES_PERCENT[PRESET_MODES_STRING.index(preset_mode)]
+        channels = IFAN02_STATES.get(percentage)
+        await self._turn_bulk(channels)
 
 class SonoffDiffuserFan(SonoffFanBase):
     def _update_handler(self, state: dict, attrs: dict):
